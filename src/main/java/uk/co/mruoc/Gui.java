@@ -1,12 +1,17 @@
 package uk.co.mruoc;
 
-import org.apache.commons.io.FilenameUtils;
+import static javax.swing.JOptionPane.*;
+import static javax.swing.JOptionPane.showMessageDialog;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+
+import javax.swing.*;
+
+import org.apache.commons.io.FilenameUtils;
+
 
 public class Gui extends JFrame {
 
@@ -33,6 +38,7 @@ public class Gui extends JFrame {
 
     public static class OpenFileListener implements ActionListener {
 
+        private final ExcelUnlocker excelUnlocker = new ExcelUnlocker();
         private JFrame frame;
 
         public OpenFileListener(JFrame frame) {
@@ -41,27 +47,38 @@ public class Gui extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            File[] files = getSelectedFiles();
+            String password = getPassword();
+            int unprotectedCount = 0;
+            for (File file : files)
+                if (unprotect(file, password))
+                    unprotectedCount++;
+            showCompletionMessage(files, unprotectedCount);
+        }
+
+        private File[] getSelectedFiles() {
             JFileChooser chooser = new JFileChooser();
             chooser.setMultiSelectionEnabled(true);
             chooser.showOpenDialog(frame);
+            return chooser.getSelectedFiles();
+        }
 
-            File[] files = chooser.getSelectedFiles();
+        private String getPassword() {
+            return showInputDialog(frame, "Enter Password");
+        }
 
-            String password = JOptionPane.showInputDialog(frame, "Enter Password");
-
+        private boolean unprotect(File file, String password) {
             try {
-                ExcelUnlocker excelUnlocker = new ExcelUnlocker();
-                for (File file : files) {
-                    System.out.println("file " + file.getName());
-                    File outputFile = new File(getOutputPath(file));
-                    System.out.println("output " + outputFile.getAbsolutePath());
-                    excelUnlocker.unlock(file, password, outputFile);
-                }
-
-                JOptionPane.showMessageDialog(frame, files.length + " files unlocked successfully");
-            } catch (NullPointerException ex) {
+                System.out.println("attempting to unprotect file " + file.getAbsolutePath());
+                String outputFilePath = getOutputPath(file);
+                excelUnlocker.createUnprotectedCopy(file, password, outputFilePath);
+                System.out.println("unprotected copy created at " + outputFilePath);
+                return true;
+            } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(frame, "Error unlocking files", "Error", JOptionPane.ERROR_MESSAGE);
+                String message = "Error unlocking " + file.getAbsolutePath() + " : " + ex.getMessage();
+                showMessageDialog(frame, message, "Error", ERROR_MESSAGE);
+                return false;
             }
         }
 
@@ -69,8 +86,13 @@ public class Gui extends JFrame {
             String path = inputFile.getParent();
             String name = FilenameUtils.getBaseName(inputFile.getName());
             String extension = FilenameUtils.getExtension(inputFile.getName());
-            path = path + File.separator + name + "-unlocked." + extension;
+            path = path + File.separator + name + "-unprotected." + extension;
             return path;
+        }
+
+        private void showCompletionMessage(File[] files, int unprotectedCount) {
+            String message = "unprotected " + unprotectedCount + " of " + files.length + " files";
+            showMessageDialog(frame, message);
         }
 
     }
