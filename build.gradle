@@ -1,0 +1,32 @@
+group 'uk.co.mruoc'
+version '1.0.0'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+    mavenCentral()
+    maven { url 'http://maven.aspose.com/artifactory/simple/ext-release-local/' }
+}
+
+dependencies {
+    compile 'net.sourceforge.jexcelapi:jxl:2.6.12'
+    compile 'commons-io:commons-io:2.5'
+    compile 'org.apache.poi:poi:3.14'
+    compile 'org.apache.poi:poi-ooxml:3.14'
+    compile 'com.aspose:aspose-cells:8.4.0'
+    compile 'org.bouncycastle:bcprov-jdk16:1.46'
+
+    testCompile 'junit:junit:4.11'
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'uk.co.mruoc.Main'
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
